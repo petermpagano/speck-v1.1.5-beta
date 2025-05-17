@@ -38,6 +38,22 @@ function transformJSXElement(el) {
   const tagName = el.openingElement.name.name;
   console.log("Compiling tag:", tagName);
 
+  if (tagName === "script") {
+    const code = el.children
+      .map((child) => {
+        if (child.type === "JSXText") return child.value;
+        if (child.type === "JSXExpressionContainer") {
+          return generate.default(child.expression).code;
+        }
+        return "";
+      })
+      .join("\n");
+
+    return {
+      type: "ScriptBlock",
+      code,
+    };
+  }
   if (tagName === "state") {
     const attr = el.openingElement.attributes[0];
     const parsed = parseAttributeValue(attr.value);
@@ -638,9 +654,13 @@ function generateJsCode(ast, currentComponentName) {
   const propsNode = rootComponent?.children.find((n) => n.type === "Props");
   const stateVars =
     rootComponent?.children.filter((n) => n.type === "StateDeclaration") || [];
+  const scriptNodes =
+    rootComponent?.children.filter((n) => n.type === "ScriptBlock") || [];
 
   const onMountNodes =
     rootComponent?.children.filter((n) => n.type === "OnMount") || [];
+
+  const scriptCode = scriptNodes.map((n) => n.code).join("\n");
 
   const onMountCode = onMountNodes
     .map((n) =>
@@ -672,12 +692,7 @@ function generateJsCode(ast, currentComponentName) {
     jsxBody = compileNode(rootNode, currentComponentName);
   }
 
-  const jsxUsesSetter = (setterName) => jsxBody.includes(setterName);
-
-  let needsForceRender = false;
-  let persistentVars = [];
-
-  const stateSetup = stateVars
+  const stateEntries = stateVars
     .map((n) => {
       let value;
 
@@ -695,33 +710,9 @@ function generateJsCode(ast, currentComponentName) {
 
       if (!n.name) throw new Error(`Missing state name: ${JSON.stringify(n)}`);
 
-      const setter = `set${capitalize(n.name)}`;
-      const shouldUseHook = n.hook || jsxUsesSetter(setter);
-
-      if (shouldUseHook) {
-        return `const [${n.name}, ${setter}] = useState(${value});`;
-      } else {
-        needsForceRender = true;
-        persistentVars.push(n.name);
-        return [
-          `const _${n.name}Ref = useRef(${value});`,
-          `let ${n.name} = _${n.name}Ref.current;`,
-        ].join("\n");
-      }
+      return `${n.name}: ${value}`;
     })
-    .join("\n");
-
-  const updateFunction = needsForceRender
-    ? `
-        const [, _forceRender] = useState(0);
-        function update() {
-          ${persistentVars
-            .map((v) => `_${v}Ref.current = ${v};`)
-            .join("\n    ")}
-          _forceRender((x) => x + 1);
-        }
-        `
-    : "";
+    .join(",\n");
 
   const usedComponents =
     jsxBody.match(/<([A-Z][a-zA-Z0-9]*)\b/g)?.map((x) => x.replace("<", "")) ||
@@ -744,15 +735,18 @@ function generateJsCode(ast, currentComponentName) {
   
   import { h } from 'preact';
 
-  import { useState${
-    needsForceRender ? ", useRef" : ""
-  }, useEffect } from 'preact/hooks';
+  import { useEffect } from 'preact/hooks';
+  import { proxy, useSnapshot } from 'valtio';
 
   import { ${usedComponents.join(", ")} } from './_componentRegistry.js';
+  const state = proxy({
+      ${stateEntries}
+  });
+
 
   ${functionSignature} {
-    ${stateSetup}
-    ${updateFunction}
+    const stateSnap = useSnapshot(state);
+    ${scriptCode}
     ${onMountHook}
     return (
       <div>
@@ -828,4 +822,4 @@ function transformCaseBlock(el) {
     value: caseValue,
     children: el.children.map(transformChild).filter(Boolean),
   };
-}
+}

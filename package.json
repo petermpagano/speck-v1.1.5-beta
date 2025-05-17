@@ -10,7 +10,8 @@
     "watch": "nodemon"
   },
   "dependencies": {
-    "preact": "^10.19.2"
+    "preact": "^10.19.2",
+    "valtio": "^1.12.0"
   },
   "devDependencies": {
     "@babel/preset-react": "^7.26.3",
