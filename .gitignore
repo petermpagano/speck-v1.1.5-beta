@@ -15,6 +15,7 @@ yarn-error.log*
 # env config
 .env
 
-# VS Code extension (separate repo)
+# VS Code extension (will be separate repo)
 vscode-extension/
+%USERPROFILE%/.vscode/
 
