@@ -1,0 +1,5 @@
+{
+  "watch": ["src/components"],
+  "ext": "speck",
+  "exec": "node compiler/compiler.js"
+}
