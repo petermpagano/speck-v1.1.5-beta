@@ -19,3 +19,6 @@ yarn-error.log*
 vscode-extension/
 %USERPROFILE%/.vscode/
 
+# Don't ignore create-speck-app template
+!create-speck-app/
+

@@ -1,0 +1,31 @@
+{
+  "name": "create-speck-app",
+  "version": "0.1.0",
+  "description": "Scaffold a new Speck.js application",
+  "type": "module",
+  "bin": {
+    "create-speck-app": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "template"
+  ],
+  "keywords": [
+    "speck",
+    "speckjs",
+    "framework",
+    "reactive",
+    "create-app",
+    "scaffold"
+  ],
+  "author": "Peter M. Pagano",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/petermpagano/speckjs"
+  },
+  "homepage": "https://speckjs.dev",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

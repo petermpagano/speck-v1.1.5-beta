@@ -42,6 +42,8 @@ cd my-app
 npm run dev
 ```
 
+> **Note:** Package is coming to npm soon! For now, clone this repo and run locally.
+
 Your app is now running at `http://localhost:5173`!
 
 ### Your First Component
