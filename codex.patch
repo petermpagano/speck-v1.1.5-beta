@@ -1,0 +1,311 @@
+diff --git a/compiler/compiler.js b/compiler/compiler.js
+index b0024b5..09b431d 100644
+--- a/compiler/compiler.js
++++ b/compiler/compiler.js
+@@ -16,50 +16,66 @@ function parseToAST(code) {
+ 
+ function transformSpeckAST(ast) {
+   const result = [];
+   for (const node of ast.program.body) {
+     if (node.type === "ExpressionStatement") {
+       const expr = node.expression;
+       if (expr.type === "JSXElement" || expr.type === "JSXFragment") {
+         result.push(transformJSXElement(expr));
+       }
+     }
+   }
+   return { type: "Document", body: result };
+ }
+ 
+ function transformJSXElement(el) {
+   if (el.type === "JSXFragment") {
+     return {
+       type: "Fragment",
+       children: el.children.map(transformChild).filter(Boolean),
+     };
+   }
+ 
+   const tagName = el.openingElement.name.name;
+   console.log("Compiling tag:", tagName);
+ 
++  if (tagName === "script") {
++    const code = el.children
++      .map((child) => {
++        if (child.type === "JSXText") return child.value;
++        if (child.type === "JSXExpressionContainer") {
++          return generate.default(child.expression).code;
++        }
++        return "";
++      })
++      .join("\n");
++
++    return {
++      type: "ScriptBlock",
++      code,
++    };
++  }
+   if (tagName === "state") {
+     const attr = el.openingElement.attributes[0];
+     const parsed = parseAttributeValue(attr.value);
+ 
+     // Determine if this is a hook-style state declaration
+     const isHook =
+       parsed?.type === "JSXExpressionContainer" &&
+       parsed.expression.type !== "NumericLiteral" &&
+       parsed.expression.type !== "StringLiteral" &&
+       parsed.expression.type !== "BooleanLiteral";
+ 
+     // console.log("STATE NODE", {
+     //   name: attr.name.name,
+     //   value: parsed,
+     //   isHook,
+     // });
+ 
+     return {
+       type: "StateDeclaration",
+       name: attr.name.name,
+       value: isHook ? parsed.expression : parsed,
+       hook: isHook,
+     };
+   }
+ 
+@@ -616,165 +632,143 @@ function compileNode(node, currentComponentName) {
+ 
+       return `{(() => {
+         switch (${switchValue}) {
+           ${cases}
+           default: return null;
+         }
+       })()}`;
+     }
+ 
+     default:
+       return "";
+   }
+ }
+ 
+ function capitalize(str) {
+   return str.charAt(0).toUpperCase() + str.slice(1);
+ }
+ 
+ function generateJsCode(ast, currentComponentName) {
+   const rootComponent = ast.body.find((n) => n.type === "Component");
+   const rootNode = rootComponent || ast.body[0]; // fallback to first node
+ 
+   const propsNode = rootComponent?.children.find((n) => n.type === "Props");
+   const stateVars =
+     rootComponent?.children.filter((n) => n.type === "StateDeclaration") || [];
++  const scriptNodes =
++    rootComponent?.children.filter((n) => n.type === "ScriptBlock") || [];
+ 
+   const onMountNodes =
+     rootComponent?.children.filter((n) => n.type === "OnMount") || [];
+ 
++  const scriptCode = scriptNodes.map((n) => n.code).join("\n");
++
+   const onMountCode = onMountNodes
+     .map((n) =>
+       n.children
+         .map((c) => {
+           if (c.type === "JSExpression") {
+             return generate.default(c.expression).code + ";";
+           }
+           return null;
+         })
+         .filter(Boolean)
+         .join("\n")
+     )
+     .filter(Boolean)
+     .join("\n");
+ 
+   const onMountHook = onMountCode
+     ? `useEffect(() => {\n${onMountCode}\n}, []);`
+     : "";
+ 
+   let jsxBody = "";
+ 
+   if (rootNode.type === "Component") {
+     jsxBody = rootNode.children
+       .filter((n) => n.type !== "OnMount")
+       .map((n) => compileNode(n, currentComponentName))
+       .join("\n");
+   } else {
+     jsxBody = compileNode(rootNode, currentComponentName);
+   }
+ 
+-  const jsxUsesSetter = (setterName) => jsxBody.includes(setterName);
+-
+-  let needsForceRender = false;
+-  let persistentVars = [];
+-
+-  const stateSetup = stateVars
++  const stateEntries = stateVars
+     .map((n) => {
+       let value;
+ 
+       if (!n.value?.type) {
+         value = JSON.stringify(n.value);
+       } else if (
+         n.value.type === "NumericLiteral" ||
+         n.value.type === "StringLiteral" ||
+         n.value.type === "BooleanLiteral"
+       ) {
+         value = JSON.stringify(n.value.value);
+       } else {
+         value = generate.default(n.value.expression || n.value).code;
+       }
+ 
+       if (!n.name) throw new Error(`Missing state name: ${JSON.stringify(n)}`);
+ 
+-      const setter = `set${capitalize(n.name)}`;
+-      const shouldUseHook = n.hook || jsxUsesSetter(setter);
+-
+-      if (shouldUseHook) {
+-        return `const [${n.name}, ${setter}] = useState(${value});`;
+-      } else {
+-        needsForceRender = true;
+-        persistentVars.push(n.name);
+-        return [
+-          `const _${n.name}Ref = useRef(${value});`,
+-          `let ${n.name} = _${n.name}Ref.current;`,
+-        ].join("\n");
+-      }
++      return `${n.name}: ${value}`;
+     })
+-    .join("\n");
+-
+-  const updateFunction = needsForceRender
+-    ? `
+-        const [, _forceRender] = useState(0);
+-        function update() {
+-          ${persistentVars
+-            .map((v) => `_${v}Ref.current = ${v};`)
+-            .join("\n    ")}
+-          _forceRender((x) => x + 1);
+-        }
+-        `
+-    : "";
++    .join(",\n");
+ 
+   const usedComponents =
+     jsxBody.match(/<([A-Z][a-zA-Z0-9]*)\b/g)?.map((x) => x.replace("<", "")) ||
+     [];
+ 
+   // ✅ handle props
+   let functionSignature = `export default function ${currentComponentName}(props)`;
+   if (propsNode) {
+     if (propsNode.spread) {
+       functionSignature = `export default function ${currentComponentName}(props)`;
+     } else if (propsNode.names?.length) {
+       const names = propsNode.names.join(", ");
+       functionSignature = `export default function ${currentComponentName}({ ${names} })`;
+     }
+   }
+ 
+   return `
+   // ⚠️ AUTO-GENERATED BY SPECK. DO NOT EDIT.
+   // This file was compiled from a .speck component.
+   
+   import { h } from 'preact';
+ 
+-  import { useState${
+-    needsForceRender ? ", useRef" : ""
+-  }, useEffect } from 'preact/hooks';
++  import { useEffect } from 'preact/hooks';
++  import { proxy, useSnapshot } from 'valtio';
+ 
+   import { ${usedComponents.join(", ")} } from './_componentRegistry.js';
++  const state = proxy({
++      ${stateEntries}
++  });
++
+ 
+   ${functionSignature} {
+-    ${stateSetup}
+-    ${updateFunction}
++    const stateSnap = useSnapshot(state);
++    ${scriptCode}
+     ${onMountHook}
+     return (
+       <div>
+         ${jsxBody}
+       </div>
+     );
+   }
+ `;
+ }
+ 
+ function generateComponentRegistry() {
+   const files = fs
+     .readdirSync(outDir)
+     .filter((f) => f.endsWith(".jsx") && f !== "_componentRegistry.js");
+ 
+   const imports = files
+     .map((f) => {
+       const name = path.basename(f, ".jsx");
+       return `import ${name} from './${name}.jsx';`;
+     })
+     .join("\n");
+ 
+   const exports = files.map((f) => path.basename(f, ".jsx")).join(", ");
+ 
+   const content = `${imports}\n\nexport {\n  ${exports}\n};\n`;
+@@ -806,26 +800,26 @@ function generateComponentRegistry() {
+ 
+       const jsCode = cleanedCode;
+ 
+       const outputFileName = file.replace(".speck", ".jsx");
+       fs.writeFileSync(path.join(outDir, outputFileName), jsCode);
+       console.log(`✅ Compiled successfully: ${file} → ${outputFileName}`);
+     } catch (error) {
+       console.error(`❌ Error parsing ${file}:`, error.message);
+     }
+   }
+ 
+   generateComponentRegistry();
+ })();
+ 
+ function transformCaseBlock(el) {
+   const whenAttr = el.openingElement.attributes.find(
+     (attr) => attr.name.name === "when"
+   );
+   const caseValue = whenAttr?.value?.value || null;
+ 
+   return {
+     type: "CaseBlock",
+     value: caseValue,
+     children: el.children.map(transformChild).filter(Boolean),
+   };
+-}
++}
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index b088d5c..d7418c9 100644
+--- a/package.json
++++ b/package.json
+@@ -1,23 +1,24 @@
+ {
+   "name": "new-speck-app",
+   "version": "0.1.0",
+   "type": "module",
+   "scripts": {
+     "dev": "concurrently \"vite\" \"npm run watch\"",
+     "build": "node compiler/compiler.js",
+     "preview": "vite preview",
+     "compile": "node compiler/compiler.js",
+     "watch": "nodemon"
+   },
+   "dependencies": {
+-    "preact": "^10.19.2"
++    "preact": "^10.19.2",
++    "valtio": "^1.12.0"
+   },
+   "devDependencies": {
+     "@babel/preset-react": "^7.26.3",
+     "@preact/preset-vite": "^2.7.0",
+     "@rollup/plugin-babel": "^6.0.4",
+     "concurrently": "^9.1.2",
+     "nodemon": "^3.1.9",
+     "vite": "^5.4.18"
+   }
+ }

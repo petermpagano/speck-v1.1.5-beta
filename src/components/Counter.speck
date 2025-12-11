@@ -1,0 +1,10 @@
+<Counter>
+  <state count={0} />
+  
+  <script>const increment = () => state.count.value++;</script>
+
+  <div>
+    <h2>Count: {state.count.value}</h2>
+    <button onClick={increment}>Increment</button>
+  </div>
+</Counter>;

@@ -2,7 +2,7 @@
   "name": "new-speck-app",
   "version": "0.1.0",
   "type": "module",
-  "scripts": {
+      "scripts": {
     "dev": "concurrently \"vite\" \"npm run watch\"",
     "build": "node compiler/compiler.js",
     "preview": "vite preview",
@@ -10,6 +10,10 @@
     "watch": "nodemon"
   },
   "dependencies": {
+    "@preact/signals": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
     "preact": "^10.19.2",
     "valtio": "^1.12.0"
   },

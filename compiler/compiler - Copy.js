@@ -663,17 +663,8 @@ function generateJsCode(ast, currentComponentName) {
 
   const onMountNodes =
     rootComponent?.children.filter((n) => n.type === "OnMount") || [];
-  // ✅ FIX: Ensure script code ends with semicolon and proper formatting
-  const scriptCode = scriptNodes
-    .map((n) => {
-      let code = n.code.trim();
-      // Add semicolon if missing
-      if (code && !code.endsWith(";") && !code.endsWith("}")) {
-        code += ";";
-      }
-      return code;
-    })
-    .join("\n");
+
+  const scriptCode = scriptNodes.map((n) => n.code).join("\n");
 
   const onMountCode = onMountNodes
     .map((n) =>
