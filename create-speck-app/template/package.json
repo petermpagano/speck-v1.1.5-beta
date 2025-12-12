@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm run watch\"",
+    "dev": "concurrently \"vite\" \"npm run watch\" \"npm run agent\"",
+    "dev:no-agent": "concurrently \"vite\" \"npm run watch\"",
     "build": "vite build",
     "preview": "vite preview",
     "compile": "node compiler/compiler.js",
-    "watch": "nodemon"
+    "watch": "nodemon",
+    "agent": "node --env-file=.env api/chat.js"
   },
   "dependencies": {
     "@preact/signals": "^2.5.1",
