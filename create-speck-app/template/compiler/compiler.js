@@ -762,7 +762,7 @@ function generateJsCode(ast, currentComponentName) {
     state[key] = signal(state[key]);
   });
 
-  ${functionSignature} {
+    ${functionSignature} {
     ${scriptCode}
     ${onMountHook}
     return (
@@ -778,6 +778,14 @@ function generateComponentRegistry() {
   const files = fs
     .readdirSync(outDir)
     .filter((f) => f.endsWith(".jsx") && f !== "_componentRegistry.js");
+
+  // ✅ Always include Agent.jsx if it exists (built-in component)
+  if (
+    !files.includes("Agent.jsx") &&
+    fs.existsSync(path.join(outDir, "Agent.jsx"))
+  ) {
+    files.unshift("Agent.jsx");
+  }
 
   const imports = files
     .map((f) => {

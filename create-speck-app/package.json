@@ -1,6 +1,6 @@
 {
   "name": "create-speck-app",
-  "version": "0.1.1",
+  "version": "0.1.8",
   "description": "Scaffold a new Speck.js application",
   "type": "module",
   "bin": {

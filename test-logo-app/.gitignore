@@ -1,0 +1,24 @@
+# dependencies
+/node_modules
+
+# compiled JS output
+/src/.compiled
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS junk
+.DS_Store
+
+# env config
+.env
+
+# VS Code extension (will be separate repo)
+vscode-extension/
+%USERPROFILE%/.vscode/
+
+# Don't ignore create-speck-app template
+!create-speck-app/
+

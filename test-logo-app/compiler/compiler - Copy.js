@@ -663,17 +663,8 @@ function generateJsCode(ast, currentComponentName) {
 
   const onMountNodes =
     rootComponent?.children.filter((n) => n.type === "OnMount") || [];
-  // ✅ FIX: Ensure script code ends with semicolon and proper formatting
-  const scriptCode = scriptNodes
-    .map((n) => {
-      let code = n.code.trim();
-      // Add semicolon if missing
-      if (code && !code.endsWith(";") && !code.endsWith("}")) {
-        code += ";";
-      }
-      return code;
-    })
-    .join("\n");
+
+  const scriptCode = scriptNodes.map((n) => n.code).join("\n");
 
   const onMountCode = onMountNodes
     .map((n) =>
@@ -762,7 +753,7 @@ function generateJsCode(ast, currentComponentName) {
     state[key] = signal(state[key]);
   });
 
-    ${functionSignature} {
+  ${functionSignature} {
     ${scriptCode}
     ${onMountHook}
     return (
@@ -778,14 +769,6 @@ function generateComponentRegistry() {
   const files = fs
     .readdirSync(outDir)
     .filter((f) => f.endsWith(".jsx") && f !== "_componentRegistry.js");
-
-  // ✅ Always include Agent.jsx if it exists (built-in component)
-  if (
-    !files.includes("Agent.jsx") &&
-    fs.existsSync(path.join(outDir, "Agent.jsx"))
-  ) {
-    files.unshift("Agent.jsx");
-  }
 
   const imports = files
     .map((f) => {
