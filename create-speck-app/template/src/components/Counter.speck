@@ -1,10 +1,25 @@
 <Counter>
   <state count={0} />
   
-  <script>const increment = () => state.count.value++;</script>
+  <script>const increment = () => state.count.value++; const decrement = () => state.count.value--;</script>
 
-  <div>
-    <h2>Count: {state.count.value}</h2>
-    <button onClick={increment}>Increment</button>
+  <div style="padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; text-align: center; max-width: 300px; margin: 20px auto; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
+    <h2 style="color: white; font-size: 3rem; margin: 0 0 20px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+      {state.count.value}
+    </h2>
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button 
+        onClick={decrement}
+        style="padding: 12px 24px; background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer;"
+      >
+        - Decrement
+      </button>
+      <button 
+        onClick={increment}
+        style="padding: 12px 24px; background: white; color: #764ba2; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);"
+      >
+        + Increment
+      </button>
+    </div>
   </div>
-</Counter>;
+</Counter>
