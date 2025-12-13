@@ -1,0 +1,48 @@
+<QuickTranslate>
+  <state text={"Hello, how are you today?"} />
+  <state translation={""} />
+  
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: sans-serif;">
+    <h1 style="color: #7c3aed;">🌍 Quick Translate</h1>
+    <p style="color: #666;">Single prompt, instant response.</p>
+    
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; margin-bottom: 8px; font-weight: bold;">English:</label>
+      <input 
+        value={state.text.value}
+        onInput={(e) => state.text.value = e.target.value}
+        style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px;"
+      />
+    </div>
+    
+    <Agent.Ask
+      purpose="You are a translator. Translate the given text to Spanish. Only output the translation, nothing else."
+      prompt={state.text.value}
+      autoSend={false}
+      onResponse={(result) => state.translation.value = result}
+    >
+      {({ send, loading, error }) => (
+        <div>
+          <button 
+            onClick={() => send(state.text.value)}
+            disabled={loading}
+            style="padding: 12px 24px; background: #7c3aed; color: white; border: none; border-radius: 8px; cursor: pointer;"
+          >
+            {loading ? "Translating..." : "Translate to Spanish"}
+          </button>
+          
+          <if condition={error}>
+            <p style="color: red; margin-top: 12px;">{error}</p>
+          </if>
+        </div>
+      )}
+    </Agent.Ask>
+    
+    <if condition={state.translation.value}>
+      <div style="margin-top: 20px; padding: 16px; background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #166534;">Spanish:</label>
+        <p style="margin: 0; font-size: 1.1rem;">{state.translation.value}</p>
+      </div>
+    </if>
+  </div>
+</QuickTranslate>;

@@ -14,6 +14,21 @@ function parseToAST(code) {
   });
 }
 
+// ✅ Helper to handle both simple tags (<div>) and member expressions (<Agent.Chat>)
+function getTagName(nameNode) {
+  if (!nameNode) return null;
+  if (nameNode.type === "JSXIdentifier") {
+    return nameNode.name;
+  }
+  if (nameNode.type === "JSXMemberExpression") {
+    // Recursively build: Agent.Chat.Something → "Agent.Chat.Something"
+    const object = getTagName(nameNode.object);
+    const property = nameNode.property.name;
+    return `${object}.${property}`;
+  }
+  return null;
+}
+
 function transformSpeckAST(ast) {
   const result = [];
   for (const node of ast.program.body) {
@@ -35,7 +50,8 @@ function transformJSXElement(el) {
     };
   }
 
-  const tagName = el.openingElement.name.name;
+  // ✅ Handle both <div> and <Agent.Chat> syntax
+  const tagName = getTagName(el.openingElement.name);
   console.log("Compiling tag:", tagName);
 
   if (tagName === "script") {
@@ -727,9 +743,14 @@ function generateJsCode(ast, currentComponentName) {
     })
     .join(",\n");
 
-  const usedComponents =
-    jsxBody.match(/<([A-Z][a-zA-Z0-9]*)\b/g)?.map((x) => x.replace("<", "")) ||
-    [];
+  // ✅ Match both <Agent> and <Agent.Chat> patterns, extract base component
+  const usedComponents = [
+    ...new Set(
+      (jsxBody.match(/<([A-Z][a-zA-Z0-9]*(?:\.[A-Z][a-zA-Z0-9]*)*)\b/g) || [])
+        .map((x) => x.replace("<", ""))
+        .map((x) => x.split(".")[0]) // "Agent.Chat" → "Agent"
+    ),
+  ];
 
   // ✅ handle props
   let functionSignature = `export default function ${currentComponentName}(props)`;

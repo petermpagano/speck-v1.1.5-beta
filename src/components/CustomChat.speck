@@ -1,0 +1,29 @@
+<CustomChat>
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: sans-serif;">
+    <h1 style="color: #7c3aed;">🎨 Custom Chat</h1>
+    <p style="color: #666;">Full control with compound components.</p>
+    
+    <Agent 
+      purpose="You are a code review expert. Be concise and direct."
+      model="claude-sonnet-4-20250514"
+      temperature={0.3}
+    >
+      <Agent.History />
+      
+      <Agent.Error />
+      
+      <Agent.Response 
+        style="background: #1e1e1e; color: #d4d4d4; font-family: monospace; border-color: #333;"
+      />
+      
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <Agent.Input 
+          placeholder="Paste code for review..." 
+          style="flex: 1; font-family: monospace;"
+        />
+        <Agent.Submit loadingText="Reviewing...">Review</Agent.Submit>
+        <Agent.Clear>Reset</Agent.Clear>
+      </div>
+    </Agent>
+  </div>
+</CustomChat>;

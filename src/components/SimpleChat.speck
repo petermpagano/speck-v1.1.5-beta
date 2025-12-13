@@ -1,0 +1,10 @@
+<SimpleChat>
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: sans-serif;">
+    <h1 style="color: #7c3aed;">💬 Simple Chat</h1>
+    <p style="color: #666;">One line of code. Full chat UI.</p>
+    
+    <Agent.Chat 
+      purpose="You are a friendly assistant who gives concise, helpful answers."
+    />
+  </div>
+</SimpleChat>;
