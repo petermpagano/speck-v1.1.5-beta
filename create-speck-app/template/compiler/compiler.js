@@ -7,8 +7,31 @@ const srcDir = path.join(process.cwd(), "src/components");
 const outDir = path.join(process.cwd(), "src/.compiled");
 const registryPath = path.join(outDir, "_componentRegistry.js");
 
+// Store extracted scripts during pre-processing
+let extractedScripts = [];
+
+// Pre-process to extract multi-line <script> blocks before Babel parsing
+function preProcessSpeck(code) {
+  extractedScripts = [];
+  let scriptIndex = 0;
+  
+  // Match <script>...</script> including multi-line content
+  const scriptRegex = /<script>([\s\S]*?)<\/script>/g;
+  
+  const processed = code.replace(scriptRegex, (match, scriptContent) => {
+    extractedScripts.push(scriptContent);
+    // Replace with a placeholder that Babel can parse
+    return `<script __scriptIndex={${scriptIndex++}} />`;
+  });
+  
+  return processed;
+}
+
 function parseToAST(code) {
-  return parse(code, {
+  // Pre-process to handle multi-line scripts
+  const processedCode = preProcessSpeck(code);
+  
+  return parse(processedCode, {
     sourceType: "module",
     plugins: ["jsx"],
   });
@@ -55,7 +78,21 @@ function transformJSXElement(el) {
   console.log("Compiling tag:", tagName);
 
   if (tagName === "script") {
-    // ✅ FIX #1: Properly extract and preserve script code formatting
+    // Check if this is a placeholder from pre-processing
+    const indexAttr = el.openingElement.attributes.find(
+      (attr) => attr.name?.name === "__scriptIndex"
+    );
+    
+    if (indexAttr && indexAttr.value?.expression) {
+      const scriptIndex = indexAttr.value.expression.value;
+      const code = extractedScripts[scriptIndex] || "";
+      return {
+        type: "ScriptBlock",
+        code: code.trim(),
+      };
+    }
+    
+    // Fallback for inline single-line scripts
     const code = el.children
       .map((child) => {
         if (child.type === "JSXText") {
@@ -66,8 +103,8 @@ function transformJSXElement(el) {
         }
         return "";
       })
-      .join("") // Don't add extra newlines
-      .trim(); // Only trim leading/trailing whitespace
+      .join("")
+      .trim();
 
     return {
       type: "ScriptBlock",
