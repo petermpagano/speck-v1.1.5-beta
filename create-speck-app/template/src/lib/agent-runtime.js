@@ -1,8 +1,6 @@
-// Agent Runtime for Speck.js
-// Handles LLM API calls and agent orchestration
-
 export class SpeckAgent {
   constructor(config) {
+    this.id = config.id || "default-agent";
     this.purpose = config.purpose || "General AI assistant";
     this.model = config.model || "gpt-4";
     this.temperature = config.temperature ?? 0.7;
@@ -13,6 +11,10 @@ export class SpeckAgent {
     this.streaming = config.streaming ?? true;
     this.tools = config.tools || [];
     this.context = config.context || {};
+
+    // Memory settings
+    this.memory = config.memory || false;
+    this.memoryDepth = config.memoryDepth || 5;
   }
 
   getApiKeyFromEnv() {
@@ -45,7 +47,9 @@ export class SpeckAgent {
     ];
 
     // Speck.js currently only supports Anthropic
-    return this.sendAnthropic(messages, options);
+    const response = await this.sendAnthropic(messages, options);
+
+    return response;
   }
 
   async sendOpenAI(messages, options) {

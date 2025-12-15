@@ -4,7 +4,8 @@ import App from './App.jsx';
 import Counter from './Counter.jsx';
 import Header from './Header.jsx';
 import SignalsDemo from './SignalsDemo.jsx';
+import SimpleChat from './SimpleChat.jsx';
 
 export {
-  Agent, AgentDemo, App, Counter, Header, SignalsDemo
+  Agent, AgentDemo, App, Counter, Header, SignalsDemo, SimpleChat
 };

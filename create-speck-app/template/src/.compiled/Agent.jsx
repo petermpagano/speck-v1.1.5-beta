@@ -3,30 +3,80 @@
 // Usage: <Agent.Chat purpose="..." /> or compound <Agent><Agent.Input />...</Agent>
 
 import { h, createContext } from 'preact';
-import { useContext, useState, useCallback, useRef } from 'preact/hooks';
+import { useContext, useState, useCallback, useRef, useEffect } from 'preact/hooks';
 
 // Context to share agent state with sub-components
 const AgentContext = createContext(null);
+
+const SESSION_KEY = 'speck_session_id';
+
+function getSessionId() {
+  let sessionId = localStorage.getItem(SESSION_KEY);
+  if (!sessionId) {
+    sessionId = 'sess_' + crypto.randomUUID();
+    localStorage.setItem(SESSION_KEY, sessionId);
+  }
+  return sessionId;
+}
+
+async function loadMemoryFromServer(agentId, depth) {
+  const sessionId = getSessionId();
+  const response = await fetch('http://localhost:3001/api/memory/load', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, agentId, depth }),
+  });
+  const data = await response.json();
+  return data.memories || [];
+}
+
+async function saveInteractionToServer(agentId, role, content, type = 'message') {
+  const sessionId = getSessionId();
+  await fetch('http://localhost:3001/api/memory/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, agentId, role, content, type }),
+  });
+}
 
 // =============================================================================
 // CORE: SpeckAgent Class (Client-side wrapper)
 // =============================================================================
 class SpeckAgentClient {
   constructor(config) {
+    this.id = config.id || 'default-agent';
     this.purpose = config.purpose || "You are a helpful AI assistant.";
     this.model = config.model || "claude-sonnet-4-20250514";
     this.temperature = config.temperature ?? 0.7;
     this.maxTokens = config.maxTokens || 1000;
     this.provider = config.provider || "anthropic";
     this.streaming = config.streaming ?? true;
+    this.memory = config.memory || false;
+    this.memoryDepth = config.memoryDepth || 5;
   }
 
   async send(message, options = {}) {
+    // Load memory context if enabled
+    let memoryContext = [];
+    if (this.memory) {
+      const memories = await loadMemoryFromServer(this.id, this.memoryDepth);
+      memoryContext = memories.map(m => ({
+        role: m.role === 'agent' ? 'assistant' : m.role,
+        content: m.content
+      }));
+    }
+
     const messages = [
       { role: "system", content: this.purpose },
+      ...memoryContext,
       ...(options.history || []),
       { role: "user", content: message },
     ];
+
+    // Save user message to memory
+    if (this.memory) {
+      await saveInteractionToServer(this.id, 'user', message, 'message');
+    }
 
     const response = await fetch("http://localhost:3001/api/chat", {
       method: "POST",
@@ -45,15 +95,23 @@ class SpeckAgentClient {
       throw new Error(error.error?.message || "API request failed");
     }
 
+    let result;
     if (this.streaming && options.onChunk) {
-      return this.handleStream(response, options.onChunk);
+      result = await this.handleStream(response, options.onChunk);
+    } else {
+      const data = await response.json();
+      result = {
+        content: data.content[0].text,
+        role: "assistant",
+      };
     }
 
-    const data = await response.json();
-    return {
-      content: data.content[0].text,
-      role: "assistant",
-    };
+    // Save agent response to memory
+    if (this.memory) {
+      await saveInteractionToServer(this.id, 'agent', result.content, 'message');
+    }
+
+    return result;
   }
 
   async handleStream(response, onChunk) {
@@ -373,12 +431,15 @@ function AgentClear({ children = "Clear", className = "", style = {} }) {
 // MAIN: Agent Provider Component
 // =============================================================================
 function Agent({ 
+  id = "default-agent",
   purpose = "You are a helpful AI assistant.",
   model = "claude-sonnet-4-20250514",
   temperature = 0.7,
   maxTokens = 1000,
   provider = "anthropic",
   streaming = true,
+  memory = false,
+  memoryDepth = 5,
   onResponse,
   onError,
   children,
@@ -386,12 +447,15 @@ function Agent({
   style = {},
 }) {
   const agent = useAgent({
+    id,
     purpose,
     model,
     temperature,
     maxTokens,
     provider,
     streaming,
+    memory,
+    memoryDepth,
     onResponse,
     onError,
   });
@@ -418,12 +482,15 @@ function Agent({
 
 // Agent.Chat - Full chat UI in one line
 function AgentChat({
+  id = "default-agent",
   purpose = "You are a helpful AI assistant.",
   model = "claude-sonnet-4-20250514",
   temperature = 0.7,
   maxTokens = 1000,
   provider = "anthropic",
   streaming = true,
+  memory = false,
+  memoryDepth = 100,
   placeholder = "Type a message...",
   submitLabel = "Send",
   loadingText = "Thinking...",
@@ -435,12 +502,15 @@ function AgentChat({
 }) {
   return (
     <Agent
+      id={id}
       purpose={purpose}
       model={model}
       temperature={temperature}
       maxTokens={maxTokens}
       provider={provider}
       streaming={streaming}
+      memory={memory}
+      memoryDepth={memoryDepth}
       onResponse={onResponse}
       onError={onError}
       className={className}
@@ -460,8 +530,11 @@ function AgentChat({
 
 // Agent.Ask - Single prompt/response (no chat history)
 function AgentAsk({
+  id = "default-agent",
   purpose = "You are a helpful AI assistant.",
   model = "claude-sonnet-4-20250514",
+  memory = false,
+  memoryDepth = 5,
   prompt,
   onResponse,
   onError,
@@ -475,7 +548,7 @@ function AgentAsk({
   const [error, setError] = useState(null);
   const sentRef = useRef(false);
 
-  const agent = useRef(new SpeckAgentClient({ purpose, model }));
+  const agent = useRef(new SpeckAgentClient({ id, purpose, model, memory, memoryDepth }));
 
   const send = useCallback(async (message) => {
     setLoading(true);

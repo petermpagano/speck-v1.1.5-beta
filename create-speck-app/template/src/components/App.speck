@@ -16,6 +16,7 @@
         <p style="text-align: center; color: #666; font-size: 1.1rem; margin-bottom: 30px;">You just created your first Speck.js app. Watch the magic happen below:</p>
         
         <SignalsDemo />
+        <SimpleChat />
         
       </div>
 

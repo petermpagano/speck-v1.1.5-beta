@@ -4,7 +4,9 @@
     <p style="color: #666;">One line of code. Full chat UI.</p>
     
     <Agent.Chat 
+      id="simple-chat"
       purpose="You are a friendly assistant who gives concise, helpful answers."
+      memory={true}
     />
   </div>
 </SimpleChat>;

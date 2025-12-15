@@ -4,6 +4,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { getDatabase, loadMemory, saveInteraction } from "./db.js";
 
 // Load environment variables
 dotenv.config();
@@ -14,9 +15,36 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+// Initialize database on startup
+getDatabase();
+
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+// Memory: Load interactions
+app.post("/api/memory/load", async (req, res) => {
+  try {
+    const { sessionId, agentId, depth } = req.body;
+    const memories = await loadMemory(sessionId, agentId, depth || 5);
+    res.json({ memories });
+  } catch (error) {
+    console.error("Memory load error:", error);
+    res.status(500).json({ error: { message: error.message } });
+  }
+});
+
+// Memory: Save interaction
+app.post("/api/memory/save", async (req, res) => {
+  try {
+    const { sessionId, agentId, role, content, type } = req.body;
+    await saveInteraction(sessionId, agentId, role, content, type || "message");
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Memory save error:", error);
+    res.status(500).json({ error: { message: error.message } });
+  }
 });
 
 // Chat endpoint - proxies to Anthropic
@@ -97,5 +125,7 @@ app.post("/api/chat", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n🤖 Speck.js Agent API running at http://localhost:${PORT}`);
-  console.log(`   POST /api/chat - Send messages to Claude\n`);
+  console.log(`   POST /api/chat - Send messages to Claude`);
+  console.log(`   POST /api/memory/load - Load agent memory`);
+  console.log(`   POST /api/memory/save - Save interaction\n`);
 });
