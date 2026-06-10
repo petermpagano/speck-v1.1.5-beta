@@ -37,12 +37,11 @@ Build reactive web applications with zero imports, intuitive syntax, and fine-gr
 ### Installation
 
 ```bash
-npm create speck-app my-app
+npm create speck-app@latest my-app
 cd my-app
 npm run dev
 ```
 
-> **Note:** Package is coming to npm soon! For now, clone this repo and run locally.
 
 Your app is now running at `http://localhost:5173`!
 

@@ -1,6 +1,6 @@
 {
   "name": "create-speck-app",
-  "version": "0.4.0",
+  "version": "0.5.1",
   "description": "Scaffold a new Speck.js application",
   "type": "module",
   "bin": {
@@ -8,8 +8,23 @@
   },
   "files": [
     "index.js",
-    "template"
+    "template/api",
+    "template/compiler",
+    "template/plugins",
+    "template/public",
+    "template/src",
+    "template/.env.example",
+    "template/gitignore",
+    "template/index.html",
+    "template/nodemon.json",
+    "template/package.json",
+    "template/package-lock.json",
+    "template/SPECK_GUIDE.md",
+    "template/vite.config.js"
   ],
+  "scripts": {
+    "prepublishOnly": "node scripts/clean-template.mjs"
+  },
   "keywords": [
     "speck",
     "speckjs",
@@ -26,6 +41,6 @@
   },
   "homepage": "https://speckjs.dev",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }
