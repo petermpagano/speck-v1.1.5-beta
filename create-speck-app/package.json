@@ -1,6 +1,6 @@
 {
   "name": "create-speck-app",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Scaffold a new Speck.js application",
   "type": "module",
   "bin": {
@@ -26,6 +26,6 @@
   },
   "homepage": "https://speckjs.dev",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   }
 }

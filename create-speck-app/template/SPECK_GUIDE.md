@@ -4,7 +4,7 @@ The AI-Native Web Framework. Write less. Build faster. No imports. Pure magic.
 
 ## Quick Start
 
-npm create speck-app my-app
+npm create speck-app@latest my-app
 cd my-app
 cp .env.example .env  # Add your Anthropic API key
 npm run dev

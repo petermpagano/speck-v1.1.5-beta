@@ -5,7 +5,7 @@ Scaffold a new Speck.js application with one command.
 ## Usage
 
 ```bash
-npm create speck-app my-app
+npm create speck-app@latest my-app
 cd my-app
 npm run dev
 ```
@@ -37,7 +37,7 @@ npm publish
 
 Now anyone can use:
 ```bash
-npm create speck-app my-app
+npm create speck-app@latest my-app
 ```
 
 ### Update Version

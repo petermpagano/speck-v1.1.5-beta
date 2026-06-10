@@ -6,6 +6,29 @@ import generate from "@babel/generator";
 const srcDir = path.join(process.cwd(), "src/components");
 const outDir = path.join(process.cwd(), "src/.compiled");
 const registryPath = path.join(outDir, "_componentRegistry.js");
+const libDir = path.join(process.cwd(), "src/lib");
+
+// Built-in framework components shipped in src/lib that every app gets
+// without writing a .speck file (e.g. <Agent.Chat />).
+const BUILT_IN_COMPONENTS = ["Agent.jsx"];
+
+function ensureBuiltInComponents() {
+  for (const file of BUILT_IN_COMPONENTS) {
+    const src = path.join(libDir, file);
+    const dest = path.join(outDir, file);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, dest);
+      console.log(`✅ Built-in component ready: ${file}`);
+    } else if (!fs.existsSync(dest)) {
+      console.warn(
+        `⚠️ Built-in component missing: src/lib/${file} — <${path.basename(
+          file,
+          ".jsx"
+        )}> tags will not resolve`
+      );
+    }
+  }
+}
 
 // Store extracted scripts during pre-processing
 let extractedScripts = [];
@@ -837,14 +860,6 @@ function generateComponentRegistry() {
     .readdirSync(outDir)
     .filter((f) => f.endsWith(".jsx") && f !== "_componentRegistry.js");
 
-  // ✅ Always include Agent.jsx if it exists (built-in component)
-  if (
-    !files.includes("Agent.jsx") &&
-    fs.existsSync(path.join(outDir, "Agent.jsx"))
-  ) {
-    files.unshift("Agent.jsx");
-  }
-
   const imports = files
     .map((f) => {
       const name = path.basename(f, ".jsx");
@@ -864,6 +879,8 @@ function generateComponentRegistry() {
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
+
+  ensureBuiltInComponents();
 
   const speckFiles = fs.readdirSync(srcDir).filter((f) => f.endsWith(".speck"));
 
