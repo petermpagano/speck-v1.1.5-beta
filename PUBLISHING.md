@@ -5,7 +5,7 @@
 Speck.js is published as `create-speck-app` on npm, allowing users to scaffold new projects with:
 
 ```bash
-npm create speck-app my-app
+npm create speck-app@latest my-app
 ```
 
 ## Prerequisites
